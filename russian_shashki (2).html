@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Russian Shashki — Play vs AI or Friend</title>
+<style>
+:root{color-scheme:dark;--bg:#151922;--panel:#202735;--text:#f3f4f6;--muted:#aab3c2;--gold:#f2cf68}
+*{box-sizing:border-box}body{margin:0;background-color:#171b20;background-image:radial-gradient(ellipse at 15% 0%,#394451 0,transparent 42%),radial-gradient(ellipse at 90% 35%,#342c27 0,transparent 38%),repeating-linear-gradient(118deg,#ffffff05 0 1px,transparent 1px 5px);color:var(--text);font:16px system-ui,-apple-system,Segoe UI,sans-serif;min-height:100vh}
+main{max-width:800px;margin:0 auto;padding:28px 16px 44px}.top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+h1{font-size:clamp(24px,5vw,36px);margin:0;letter-spacing:.02em;text-shadow:0 2px 12px #0008}.sub{color:var(--muted);margin:7px 0 22px}
+.panel{background:linear-gradient(145deg,#29313b,#1d242d 58%,#252b32);border:1px solid #59616b;border-radius:18px;padding:18px;box-shadow:0 18px 42px #0007,inset 0 1px #ffffff12;position:relative;overflow:hidden}
+.panel:before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.18;background:repeating-linear-gradient(8deg,transparent 0 7px,#ffffff12 8px,transparent 9px 15px),radial-gradient(ellipse at 20% 10%,#ffffff20,transparent 55%)}
+.panel>*{position:relative}
+.statusrow{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.pill{background:#111722;border:1px solid #3b4658;border-radius:99px;padding:8px 12px;font-size:14px}
+.board{width:min(100%,560px);margin:auto;display:grid;grid-template-columns:repeat(8,1fr);border:9px solid #493323;border-radius:10px;overflow:hidden;box-shadow:0 12px 28px #0009,inset 0 0 0 2px #d0a87555,0 0 0 1px #c49a6b}
+.square{aspect-ratio:1;display:grid;place-items:center;position:relative;border:0;padding:0;min-width:0;cursor:pointer}
+.light{background-color:#dfc69d;background-image:repeating-linear-gradient(7deg,transparent 0 5px,#8e69401c 6px,transparent 7px 13px),linear-gradient(135deg,#f2e2c2,#d5b98c)}
+.dark{background-color:#704a31;background-image:repeating-linear-gradient(12deg,transparent 0 4px,#e0b17b18 5px,transparent 6px 12px),linear-gradient(135deg,#916743,#573722)}
+.square:focus-visible{outline:3px solid #fff;outline-offset:-4px;z-index:2}
+.piece{width:79%;height:79%;border-radius:50%;display:grid;place-items:center;font-size:clamp(13px,3.6vw,25px);font-weight:900;border:3px solid #ffffff75;box-shadow:inset 0 3px 5px #ffffff45,inset 0 -8px 7px #0007,0 5px 5px #0009;user-select:none;position:relative}
+.piece:after{content:"";position:absolute;inset:12%;border-radius:50%;border:1px solid #ffffff35;box-shadow:inset 0 1px 2px #0004}
+.red{background:radial-gradient(circle at 32% 23%,#ffb0a5 0,#e34b4b 34%,#a81525 78%,#650d19 100%);color:#ffe6a4}
+.black{background:radial-gradient(circle at 32% 23%,#c3c7c9 0,#626a73 32%,#252a31 75%,#101318 100%);color:#ffe6a4}
+.selected{outline:4px solid var(--gold);outline-offset:-4px}
+.target:after{content:"";width:27%;height:27%;border-radius:50%;background:#f5d45d;box-shadow:0 0 0 3px #553f22aa;position:absolute}
+.controls{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:16px}
+button.action{border:1px solid #7b8794;background:linear-gradient(180deg,#465363,#2c3745);color:#fff;padding:10px 16px;border-radius:10px;font-weight:650;cursor:pointer;box-shadow:inset 0 1px #ffffff20,0 3px 8px #0004}
+button.action:hover{background:linear-gradient(180deg,#566579,#354253);transform:translateY(-1px)}button.action:disabled{opacity:.45;cursor:not-allowed}
+.score{display:flex;justify-content:space-between;color:var(--muted);font-size:14px;margin-top:14px}
+.help{color:var(--muted);font-size:13px;line-height:1.5;margin:16px auto 0;max-width:560px}
+@media(max-width:420px){main{padding:16px 9px}.panel{padding:10px}.board{border-width:3px}}
+</style>
+</head>
+<body>
+<main>
+ <div class="top"><h1>Russian Shashki</h1><span class="pill" id="modeBadge">Play vs AI</span></div>
+ <p class="sub">Choose to challenge the computer or play a friend on the same device.</p>
+ <section class="panel">
+  <div class="statusrow">
+  <strong id="status" aria-live="polite">Your turn — choose a red piece.</strong>
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+   <label for="gameMode" style="font-size:13px;color:#aab3c2">Mode</label>
+   <select id="gameMode" class="pill" style="color:var(--text);background:#111722">
+    <option value="ai" selected>Play vs AI</option><option value="friend">Play a friend</option>
+   </select>
+   <label for="difficulty" id="difficultyLabel" style="font-size:13px;color:#aab3c2">AI level</label>
+   <select id="difficulty" class="pill" style="color:var(--text);background:#111722">
+    <option value="easy">Easy</option><option value="medium" selected>Medium</option>
+    <option value="hard">Hard</option><option value="expert">Expert</option><option value="master">Master</option>
+   </select>
+   <span class="pill" id="turn">Red to move</span>
+  </div>
+ </div>
+  <div class="board" id="board" role="group" aria-label="Russian draughts board"></div>
+  <div class="score"><span>🔴 <b id="redPlayerLabel">You</b>: <b id="redCount">12</b></span><span>⚫ <b id="blackPlayerLabel">Computer</b>: <b id="blackCount">12</b></span></div>
+  <div class="controls"><button class="action" id="newGame">New game</button><button class="action" id="undo">Undo turn</button></div>
+  <p class="help">How to play: click a red piece, then click a highlighted square. Captures are compulsory; ordinary pieces capture forwards or backwards. Kings can travel and capture across multiple empty squares. Multi-captures are completed in one turn. In friend mode, take turns using the same device: Red moves first, then Black. Choose an AI level when playing against the computer.</p>
+ </section>
+
+ <section class="panel" style="margin-top:18px">
+  <div class="statusrow">
+   <strong>Competitive rating</strong>
+   <span class="pill">Your local profile</span>
+  </div>
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
+   <div>
+    <div style="font-size:13px;color:var(--muted)">SHASHKI ELO</div>
+    <div id="elo" style="font-size:38px;font-weight:850;letter-spacing:.02em">1000</div>
+   </div>
+   <div style="display:flex;gap:18px;flex-wrap:wrap">
+    <div><div style="font-size:12px;color:var(--muted)">WINS</div><b id="wins">0</b></div>
+    <div><div style="font-size:12px;color:var(--muted)">LOSSES</div><b id="losses">0</b></div>
+    <div><div style="font-size:12px;color:var(--muted)">GAMES</div><b id="games">0</b></div>
+   </div>
+  </div>
+  <p class="help" style="margin-bottom:0">Your personal rating is set to 5000. It changes after each completed game. Beating a stronger AI level earns more points; losing to an easier level costs more. This prototype saves your profile in this browser on this device.</p>
+ </section>
+
+ <section class="panel" style="margin-top:18px">
+  <div class="statusrow"><strong>Online matchmaking</strong><span class="pill">Coming soon</span></div>
+  <p style="margin:0 0 12px;color:var(--muted)">The future online queue will match you with another player near your ELO rating.</p>
+  <button class="action" id="queueButton" type="button">Preview online queue</button>
+  <p id="queueStatus" class="help" aria-live="polite" style="margin-bottom:0">Online matches are not live yet. A hosted game server is needed so two players can connect and play in real time.</p>
+ </section>
+</main>
+<script>
+(() => {
+const $=id=>document.getElementById(id), dirs=[[-1,-1],[-1,1],[1,-1],[1,1]];
+let board,side='r',selected=null,legal=[],busy=false,gameOver=false,history=[],resultRecorded=false;
+const copy=b=>b.map(row=>row.map(p=>p?{...p}:null));
+const PROFILE_KEY='russianShashkiProfileV1';
+let profile={elo:5000,wins:0,losses:0};
+try{
+ const saved=JSON.parse(localStorage.getItem(PROFILE_KEY)||'null');
+ if(saved&&Number.isFinite(saved.wins)&&Number.isFinite(saved.losses))
+  profile={elo:5000,wins:saved.wins,losses:saved.losses};
+}catch(e){}
+try{localStorage.setItem(PROFILE_KEY,JSON.stringify(profile))}catch(e){}
+function saveProfile(){
+ try{localStorage.setItem(PROFILE_KEY,JSON.stringify(profile))}catch(e){}
+}
+function renderProfile(){
+ $('elo').textContent=profile.elo;
+ $('wins').textContent=profile.wins;
+ $('losses').textContent=profile.losses;
+ $('games').textContent=profile.wins+profile.losses;
+}
+function recordResult(playerWon){
+ if(resultRecorded)return;
+ resultRecorded=true;
+ const opponentRatings={easy:800,medium:1000,hard:1200,expert:1400,master:1600};
+ const opponent=opponentRatings[$('difficulty').value]||1000;
+ const expected=1/(1+Math.pow(10,(opponent-profile.elo)/400));
+ const actual=playerWon?1:0;
+ const change=Math.round(32*(actual-expected));
+ profile.elo=Math.max(100,profile.elo+change);
+ if(playerWon)profile.wins++;else profile.losses++;
+ saveProfile();renderProfile();
+ $('status').textContent+=(playerWon?` ELO +${change}.`:` ELO ${change}.`);
+}
+function isFriendMode(){return $('gameMode').value==='friend'}
+function updateModeUI(){
+ const friend=isFriendMode();
+ $('difficulty').disabled=friend;
+ $('difficultyLabel').style.opacity=friend?'.4':'1';
+ $('modeBadge').textContent=friend?'Two players · same device':'Play vs AI';
+ $('redPlayerLabel').textContent=friend?'Player 1':'You';
+ $('blackPlayerLabel').textContent=friend?'Player 2':'Computer';
+}
+function start(){
+ board=Array.from({length:8},()=>Array(8).fill(null));
+ for(let r=0;r<3;r++)for(let c=0;c<8;c++)if((r+c)%2)board[r][c]={s:'b',k:false};
+ for(let r=5;r<8;r++)for(let c=0;c<8;c++)if((r+c)%2)board[r][c]={s:'r',k:false};
+ side='r';selected=null;legal=[];busy=false;gameOver=false;history=[];resultRecorded=false;
+ $('status').textContent=isFriendMode()?'Player 1 (Red) — your move.':'Your turn — choose a red piece.';render();
+}
+function captureSteps(b,r,c,p,visited){
+ let out=[];
+ for(const [dr,dc] of dirs){
+  let nr=r+dr,nc=c+dc;
+  if(p.k){
+   while(inside(nr,nc)&&!b[nr][nc]){nr+=dr;nc+=dc}
+   if(!inside(nr,nc)||!b[nr][nc]||b[nr][nc].s===p.s||visited.some(v=>v.r===nr&&v.c===nc))continue;
+   const cr=nr,cc=nc;nr+=dr;nc+=dc;
+   while(inside(nr,nc)&&!b[nr][nc]){out.push({r:nr,c:nc,cap:{r:cr,c:cc}});nr+=dr;nc+=dc}
+  }else{
+   if(!inside(nr,nc)||!b[nr][nc]||b[nr][nc].s===p.s||visited.some(v=>v.r===nr&&v.c===nc))continue;
+   const er=nr+dr,ec=nc+dc;if(inside(er,ec)&&!b[er][ec])out.push({r:er,c:ec,cap:{r:nr,c:nc}});
+  }
+ }
+ return out;
+}
+function inside(r,c){return r>=0&&r<8&&c>=0&&c<8}
+function quiet(b,r,c,p){
+ let out=[];
+ for(const [dr,dc] of dirs){
+  if(!p.k&&dr!==(p.s==='r'?-1:1))continue;
+  let nr=r+dr,nc=c+dc;
+  while(inside(nr,nc)&&!b[nr][nc]){out.push({r:nr,c:nc});if(!p.k)break;nr+=dr;nc+=dc}
+ }
+ return out;
+}
+function captureSequences(b,r,c,p){
+ let results=[];
+ function walk(state,rr,cc,piece,visited,path){
+  let next=captureSteps(state,rr,cc,piece,visited);
+  if(!next.length){if(path.length)results.push({from:{r,c},steps:path});return}
+  for(const m of next){
+   let n=copy(state),q={...piece};n[rr][cc]=null;n[m.cap.r][m.cap.c]=null;
+   // In Russian draughts a man reaching the king row during a capture becomes a king immediately.
+   if((q.s==='r'&&m.r===0)||(q.s==='b'&&m.r===7))q.k=true;
+   n[m.r][m.c]=q;
+   walk(n,m.r,m.c,q,[...visited,m.cap],[...path,m]);
+  }
+ }
+ walk(b,r,c,p,[],[]);return results;
+}
+function allMoves(s,b=board){
+ let caps=[],moves=[];
+ for(let r=0;r<8;r++)for(let c=0;c<8;c++){
+  const p=b[r][c];if(!p||p.s!==s)continue;
+  caps.push(...captureSequences(b,r,c,p));
+  for(const m of quiet(b,r,c,p))moves.push({from:{r,c},steps:[m]});
+ }
+ return caps.length?caps:moves;
+}
+function apply(b,m){
+ const n=copy(b),p={...n[m.from.r][m.from.c]};n[m.from.r][m.from.c]=null;
+ for(const step of m.steps){
+  if(step.cap)n[step.cap.r][step.cap.c]=null;
+  if((p.s==='r'&&step.r===0)||(p.s==='b'&&step.r===7))p.k=true;
+ }
+ const last=m.steps[m.steps.length-1];n[last.r][last.c]=p;return n;
+}
+function render(){
+ const el=$('board');el.innerHTML='';
+ for(let r=0;r<8;r++)for(let c=0;c<8;c++){
+  const sq=document.createElement('button');sq.type='button';sq.className='square '+((r+c)%2?'dark':'light');
+  sq.setAttribute('aria-label',`Row ${r+1}, column ${c+1}`);
+  if(selected&&selected.r===r&&selected.c===c)sq.classList.add('selected');
+  if(legal.some(m=>m.from.r===selected?.r&&m.from.c===selected?.c&&m.steps[0].r===r&&m.steps[0].c===c))sq.classList.add('target');
+  const p=board[r][c];if(p){const piece=document.createElement('span');piece.className='piece '+(p.s==='r'?'red':'black');piece.textContent=p.k?'♛':'';sq.append(piece)}
+  sq.addEventListener('click',()=>humanClick(r,c));el.append(sq);
+ }
+ $('redCount').textContent=board.flat().filter(p=>p?.s==='r').length;
+ $('blackCount').textContent=board.flat().filter(p=>p?.s==='b').length;
+ $('turn').textContent=gameOver?'Game over':busy?'Computer thinking…':isFriendMode()?(side==='r'?'Player 1 · Red':'Player 2 · Black'):(side==='r'?'Your turn · Red':'Computer · Black');
+ $('undo').disabled=!history.length||busy;
+}
+function humanClick(r,c){
+ if(busy||gameOver||(!isFriendMode()&&side!=='r'))return;
+ const activeSide=side;
+ if(selected){
+  let candidates=legal.filter(m=>m.from.r===selected.r&&m.from.c===selected.c&&m.steps[0].r===r&&m.steps[0].c===c);
+  if(candidates.length){
+   history.push({board:copy(board),side});board=apply(board,candidates[0]);selected=null;legal=[];
+   if(checkEnd())return;
+   side=activeSide==='r'?'b':'r';
+   if(isFriendMode()){
+    $('status').textContent=side==='r'?'Player 1 (Red) — your move.':'Player 2 (Black) — your move.';
+    render();return;
+   }
+   busy=true;$('status').textContent='Computer is thinking…';render();setTimeout(computerMove,350);return;
+  }
+ }
+ if(board[r][c]?.s===activeSide){
+  let all=allMoves(activeSide);legal=all.filter(m=>m.from.r===r&&m.from.c===c);selected=legal.length?{r,c}:null;
+  $('status').textContent=legal.length?(all.some(m=>m.steps[0].cap)?'A capture is required. Choose a highlighted square.':'Choose a highlighted square.'):'That piece has no legal move.';
+ }else{selected=null;legal=[];$('status').textContent=isFriendMode()?(side==='r'?'Select a red piece for Player 1.':'Select a black piece for Player 2.'):'Select a red piece.'}
+ render();
+}
+function checkEnd(){
+ let reds=board.flat().filter(p=>p?.s==='r').length,blacks=board.flat().filter(p=>p?.s==='b').length;
+ if(!reds||!allMoves('r').length){
+  gameOver=true;
+  if(isFriendMode())$('status').textContent='Player 2 (Black) wins! Start a new game to play again.';
+  else{$('status').textContent='Computer wins! Start a new game to play again.';recordResult(false)}
+ }
+ else if(!blacks||!allMoves('b').length){
+  gameOver=true;
+  if(isFriendMode())$('status').textContent='Player 1 (Red) wins! Start a new game to play again.';
+  else{$('status').textContent='You win! Congratulations!';recordResult(true)}
+ }
+ render();return gameOver;
+}
+function computerMove(){
+ if(gameOver||isFriendMode())return;
+ let moves=allMoves('b');
+ if(!moves.length){gameOver=true;busy=false;$('status').textContent='You win!';recordResult(true);render();return}
+ const level=$('difficulty').value;
+ // Higher levels search further ahead and evaluate captures, kings, mobility, and exposed pieces.
+ function evaluate(pos){
+  let score=0;
+  for(let r=0;r<8;r++)for(let c=0;c<8;c++){
+   const p=pos[r][c];if(!p)continue;
+   const value=p.k?3.4:1;
+   score+=(p.s==='b'?1:-1)*(value+(p.k?0:(p.s==='b'?r:7-r)*0.025));
+  }
+  score+=(allMoves('b',pos).length-allMoves('r',pos).length)*0.035;
+  return score;
+ }
+ function minimax(pos,depth,maximizing,alpha,beta){
+  const s=maximizing?'b':'r',movesHere=allMoves(s,pos);
+  if(depth===0||!movesHere.length)return evaluate(pos)+(movesHere.length?0:(maximizing?-100:100));
+  if(maximizing){
+   let best=-Infinity;
+   for(const m of movesHere){best=Math.max(best,minimax(apply(pos,m),depth-1,false,alpha,beta));alpha=Math.max(alpha,best);if(beta<=alpha)break}
+   return best;
+  }else{
+   let best=Infinity;
+   for(const m of movesHere){best=Math.min(best,minimax(apply(pos,m),depth-1,true,alpha,beta));beta=Math.min(beta,best);if(beta<=alpha)break}
+   return best;
+  }
+ }
+ let ranked=moves.map(m=>{
+  const next=apply(board,m),last=m.steps[m.steps.length-1],p=next[last.r][last.c];
+  let score;
+  if(level==='easy'){
+   score=Math.random()*10+(m.steps.some(x=>x.cap)?1.5:0);
+  }else{
+   score=evaluate(next)+m.steps.length*0.12+(p.k?0.7:0);
+   const threats=allMoves('r',next).filter(x=>x.steps[0].cap&&x.steps[0].cap.r===last.r&&x.steps[0].cap.c===last.c).length;
+   score-=threats*0.9;
+   if(level==='hard'||level==='expert'||level==='master'){
+    const depth=level==='hard'?2:level==='expert'?3:4;
+    score=minimax(next,depth-1,false,-Infinity,Infinity)+Math.random()*0.015;
+   }else score+=Math.random()*0.12;
+  }
+  return {m,score};
+ }).sort((a,b)=>b.score-a.score);
+ // Easy deliberately makes less consistent choices; the stronger settings use search.
+ const choice=level==='easy'?ranked[Math.floor(Math.random()*Math.min(ranked.length,Math.max(1,Math.ceil(ranked.length*.75))))]:ranked[0];
+ board=apply(board,choice.m);side='r';busy=false;selected=null;legal=[];
+ if(!checkEnd()){$('status').textContent='Your turn — choose a red piece.';render()}
+}
+$('newGame').addEventListener('click',start);
+$('gameMode').addEventListener('change',()=>{updateModeUI();start()});
+$('queueButton').addEventListener('click',()=>{
+ $('queueStatus').textContent='Queue preview: when online play is built, this button will search for an opponent close to your '+profile.elo+' ELO. No opponent search is running yet because the online server is not connected.';
+});
+$('undo').addEventListener('click',()=>{
+ if(busy||!history.length)return;
+ const h=history.pop();board=h.board;side=h.side;selected=null;legal=[];gameOver=false;
+ $('status').textContent='Previous turn undone.';render();
+});
+renderProfile();
+updateModeUI();
+start();
+})();
+</script>
+</body>
+</html>
